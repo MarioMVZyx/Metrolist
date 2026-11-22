@@ -117,6 +117,9 @@ internal class PromotedMediaNotificationProvider(
         // Now-playing integrations such as Diffuse only track media notifications marked ongoing.
         notification.flags = notification.flags or Notification.FLAG_ONGOING_EVENT
         if (Build.VERSION.SDK_INT >= 36) notification.extras.putBoolean(NotificationCompat.EXTRA_REQUEST_PROMOTED_ONGOING, true)
+        notification.color = 0xFF35F1FF.toInt()
+        notification.category = NotificationCompat.CATEGORY_TRANSPORT
+        notification.visibility = NotificationCompat.VISIBILITY_PUBLIC
         return this
     }
 }

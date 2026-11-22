@@ -8,9 +8,16 @@
 package com.metrolist.shared.ui.design.expressive.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
@@ -46,8 +53,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
@@ -152,6 +162,37 @@ fun ExpressiveMiniPlayer(
     var dragOffsetX by remember { mutableFloatStateOf(0f) }
     val playLabel = playbackActionLabel ?: stringResource(if (isPlaying) Res.string.pause else Res.string.play)
     var isFocused by remember { mutableStateOf(false) }
+    val motionTransition = rememberInfiniteTransition(label = "expressiveMiniPlayerNeon")
+    val neonPulse by motionTransition.animateFloat(
+        initialValue = 0.72f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 2_400, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "expressiveMiniPlayerNeonPulse",
+    )
+    val neonOrbit by motionTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 5_600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "expressiveMiniPlayerNeonOrbit",
+    )
+    val neonCyan = Color(0xFF35F1FF)
+    val neonPurple = Color(0xFFC85AFF)
+    val neonBorder =
+        Brush.horizontalGradient(
+            listOf(
+                neonCyan.copy(alpha = neonPulse),
+                neonPurple.copy(alpha = neonPulse),
+                neonCyan.copy(alpha = neonPulse * 0.72f),
+            ),
+        )
 
     PlayerSheetSurface(
         modifier =
@@ -166,6 +207,11 @@ fun ExpressiveMiniPlayer(
                         false
                     }
                 }.height(ExpressiveMiniPlayerHeight)
+                .border(
+                    width = 1.dp,
+                    brush = neonBorder,
+                    shape = CircleShape,
+                )
                 .graphicsLayer {
                     translationX = dragOffsetX
                     alpha = if (isVisible) 1f else 0f
@@ -212,6 +258,37 @@ fun ExpressiveMiniPlayer(
     ) {
         BoxWithConstraints(Modifier.fillMaxWidth().padding(start = 10.dp, end = 12.dp)) {
             val controlsMaxWidth = maxWidth * 0.5f
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = if (isPlaying && active) 0.22f else 0.10f
+                        }.drawBehind {
+                            val orbitX = size.width * (0.52f + neonOrbit * 0.36f)
+                            val orbitY = size.height * (0.18f + neonPulse * 0.12f)
+                            drawCircle(
+                                brush =
+                                    Brush.radialGradient(
+                                        colors = listOf(neonCyan.copy(alpha = neonPulse), Color.Transparent),
+                                        center = Offset(orbitX, orbitY),
+                                        radius = size.height * 1.35f,
+                                    ),
+                                radius = size.height * 1.35f,
+                                center = Offset(orbitX, orbitY),
+                            )
+                            drawCircle(
+                                brush =
+                                    Brush.radialGradient(
+                                        colors = listOf(neonPurple.copy(alpha = neonPulse * 0.68f), Color.Transparent),
+                                        center = Offset(size.width * (0.88f - neonOrbit * 0.22f), size.height * 0.9f),
+                                        radius = size.height,
+                                    ),
+                                radius = size.height,
+                                center = Offset(size.width * (0.88f - neonOrbit * 0.22f), size.height * 0.9f),
+                            )
+                        },
+            )
             Row(
                 modifier = Modifier.fillMaxWidth().height(ExpressiveMiniPlayerHeight),
                 verticalAlignment = Alignment.CenterVertically,
