@@ -250,7 +250,7 @@ sentry {
 android {
     namespace = "com.metrolist.android"
     compileSdk {
-        version = release(36)
+        version = release(37) { minorApiLevel = 1 }
     }
     ndkVersion = libs.versions.androidNdk.get()
 
