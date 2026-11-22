@@ -23,7 +23,7 @@ import io.sentry.android.core.SentryAndroid
 import io.sentry.logger.SentryLogParameters
 import io.sentry.protocol.Request
 
-internal fun androidSentryRelease(version: String): String = "com.metrolist.music.kmp@$version"
+internal fun androidSentryRelease(version: String): String = "com.zyx.music.kmp@$version"
 
 object SentryManager {
     private lateinit var application: Application
