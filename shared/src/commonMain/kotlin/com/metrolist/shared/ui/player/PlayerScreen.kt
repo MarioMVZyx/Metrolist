@@ -15,8 +15,13 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -855,6 +860,30 @@ fun PlayerScreen(
 
     val albumArtShape = RoundedCornerShape(PlayerArtworkCornerRadius)
     val smallAlbumArtShape = if (isTv) albumArtShape else ComponentShapes.SmallThumbnailShape
+    val artworkInfiniteTransition = rememberInfiniteTransition(label = "playerArtworkMotion")
+    val artworkBreathingScale by artworkInfiniteTransition.animateFloat(
+        initialValue = 0.985f,
+        targetValue = 1.015f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 3_600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "playerArtworkBreathing",
+    )
+    val artworkScale by animateFloatAsState(
+        targetValue =
+            if (isPlaying && !uiState.isLyricsVisible && LocalPlayerContentActive.current) {
+                artworkBreathingScale
+            } else {
+                1f
+            },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow,
+        ),
+        label = "playerArtworkScale",
+    )
     val albumArtBoundsTransform =
         remember(allowArtworkExpansion) {
             BoundsTransform { _, _ ->
@@ -1830,7 +1859,11 @@ fun PlayerScreen(
                                                                             boundsTransform = albumArtBoundsTransform,
                                                                             clipInOverlayDuringTransition = OverlayClip(albumArtShape),
                                                                         ).aspectRatio(1f)
-                                                                        .clip(albumArtShape),
+                                                                        .clip(albumArtShape)
+                                                                        .graphicsLayer {
+                                                                            scaleX = artworkScale
+                                                                            scaleY = artworkScale
+                                                                        },
                                                             ) {
                                                                 CrossfadeArtwork(
                                                                     animate = LocalPlayerContentActive.current,
