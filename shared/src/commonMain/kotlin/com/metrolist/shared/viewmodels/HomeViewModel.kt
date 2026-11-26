@@ -740,7 +740,7 @@ class HomeViewModel(
                                     emptyList()
                                 }.filterNot { song ->
                                     song.id == seed.id || song.id in likedSongIds ||
-                                        song.isLiked || song.isLocal || song.isUploaded || song.isUnavailable
+                                        song.isLocal || song.isUploaded || song.isUnavailable
                                 }.take(LIKED_SONG_RECOMMENDATIONS_PER_SEED)
                             }
                         }.map { it.await() }
@@ -757,7 +757,7 @@ class HomeViewModel(
                         likedSongRecommendations =
                             recommendations.filterNot { song ->
                                 song.id in seedIds || song.id in latestLikedSongIds ||
-                                    song.isLiked || song.isLocal || song.isUploaded || song.isUnavailable
+                                    song.isLocal || song.isUploaded || song.isUnavailable
                             },
                     )
                 }
