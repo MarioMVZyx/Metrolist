@@ -176,6 +176,7 @@ data class HomeContentText(
     val playAll: String,
     val keepListening: String,
     val quickPicks: String,
+    val likedSongRecommendations: String,
     val forgottenFavorites: String,
     val loading: String,
     val tryAgain: String,

@@ -42,8 +42,10 @@ import com.metrolist.shared.settings.HomeContentFilter
 import com.metrolist.shared.settings.Settings
 import com.metrolist.shared.state.GlobalYouTube
 import com.metrolist.shared.state.GlobalYouTubeRepository
+import com.metrolist.shared.state.SongLikeState
 import com.metrolist.shared.ui.components.AUTO_PLAYLIST_ICON_LIKED
 import com.metrolist.shared.ui.screens.HomeShelfCache
+import com.metrolist.shared.ui.screens.LIKED_SONG_RECOMMENDATIONS_SECTION_KEY
 import com.metrolist.shared.utils.Logger
 import com.metrolist.shared.utils.getCurrentTimeMillis
 import com.metrolist.shared.utils.withArtworkCacheRevision
@@ -81,6 +83,8 @@ import kotlin.time.TimeSource
 private const val HOME_CHIP_FRESHNESS_MS = 120_000L
 private const val HOME_CHIP_CACHE_SIZE = 6
 private const val HOME_LOG_TAG = "HomeViewModel"
+private const val LIKED_SONG_RECOMMENDATION_SEED_COUNT = 3
+private const val LIKED_SONG_RECOMMENDATIONS_PER_SEED = 6
 
 private const val HOME_SNAPSHOT_SECTIONS = 8
 private const val HOME_SNAPSHOT_ITEMS = 24
@@ -234,6 +238,7 @@ class HomeViewModel(
     private val scope: CoroutineScope,
     private val httpClient: HttpClient = GlobalYouTube.client,
     var likedSongsName: String,
+    private val enableLikedSongRecommendations: Boolean = false,
 ) {
     val shelfCache = HomeShelfCache()
 
@@ -311,6 +316,7 @@ class HomeViewModel(
 
     init {
         AuthManager().restorePersistedSession()
+        if (enableLikedSongRecommendations) observeLikedSongRecommendations()
         val restoreGeneration = contentLoadGeneration
         scope.launch {
             snapshotFlow { Settings.shared.classicRecommendations }
@@ -684,6 +690,77 @@ class HomeViewModel(
                             invalidateCacheForLocaleChange()
                         }
                     }
+            }
+        }
+    }
+
+    private fun observeLikedSongRecommendations() {
+        val likedSeedIds =
+            snapshotFlow {
+                val songsById = SongLikeState.likedSongs.associateBy(SongItem::id)
+                SongLikeState.likedSongRecency
+                    .asSequence()
+                    .mapNotNull(songsById::get)
+                    .filterNot { it.isLocal || it.isUploaded || it.isUnavailable }
+                    .map(SongItem::id)
+                    .take(LIKED_SONG_RECOMMENDATION_SEED_COUNT)
+                    .toList()
+            }.distinctUntilChanged()
+        val networkAvailable = PlaybackNetworkStateStore.state.map { it.connected }.distinctUntilChanged()
+        val sectionVisible =
+            snapshotFlow { Settings.shared.shouldShowHomeSection(LIKED_SONG_RECOMMENDATIONS_SECTION_KEY) }
+                .distinctUntilChanged()
+
+        scope.launch {
+            combine(likedSeedIds, networkAvailable, sectionVisible) { seedIds, connected, visible ->
+                Triple(seedIds, connected, visible)
+            }.collectLatest { (seedIds, connected, visible) ->
+                if (seedIds.isEmpty()) {
+                    _uiState.update { it.copy(likedSongRecommendations = emptyList()) }
+                    return@collectLatest
+                }
+                if (!connected || !visible) {
+                    _uiState.update { it.copy(likedSongRecommendations = emptyList()) }
+                    return@collectLatest
+                }
+
+                _uiState.update { it.copy(likedSongRecommendations = emptyList()) }
+                _uiState.first { !it.isLoading && !it.isRestoringCache }
+                val likedSongsById = SongLikeState.likedSongs.associateBy(SongItem::id)
+                val seeds = seedIds.mapNotNull(likedSongsById::get)
+                val likedSongIds = SongLikeState.likedSongIds
+                val radios =
+                    supervisorScope {
+                        seeds.map { seed ->
+                            async {
+                                homeRequestResult("liked-song radio") {
+                                    GlobalYouTubeRepository.instance.startRadio(seed.id)
+                                }.getOrElse { error ->
+                                    Logger.w(HOME_LOG_TAG, "Failed to load liked-song recommendations", error)
+                                    emptyList()
+                                }.filterNot { song ->
+                                    song.id == seed.id || song.id in likedSongIds ||
+                                        song.isLiked || song.isLocal || song.isUploaded || song.isUnavailable
+                                }.take(LIKED_SONG_RECOMMENDATIONS_PER_SEED)
+                            }
+                        }.map { it.await() }
+                    }
+                val recommendations =
+                    buildList {
+                        repeat(LIKED_SONG_RECOMMENDATIONS_PER_SEED) { index ->
+                            radios.forEach { radio -> radio.getOrNull(index)?.let { add(it) } }
+                        }
+                    }.distinctBy(SongItem::id)
+                val latestLikedSongIds = SongLikeState.likedSongIds
+                _uiState.update {
+                    it.copy(
+                        likedSongRecommendations =
+                            recommendations.filterNot { song ->
+                                song.id in seedIds || song.id in latestLikedSongIds ||
+                                    song.isLiked || song.isLocal || song.isUploaded || song.isUnavailable
+                            },
+                    )
+                }
             }
         }
     }
@@ -1961,6 +2038,7 @@ class HomeViewModel(
         val trending: List<SongItem> = emptyList(),
         val albumCharts: List<AlbumItem> = emptyList(),
         val quickPicks: List<SongItem> = emptyList(),
+        @Transient val likedSongRecommendations: List<SongItem> = emptyList(),
         val speedDialItems: List<YTItem> = emptyList(),
         val speedDialPinnedIds: List<String> = emptyList(),
         val speedDialSurprisePinned: Boolean = false,
@@ -2266,6 +2344,7 @@ internal fun HomeViewModel.HomeUiState.withCurrentHomeLoadState(currentState: Ho
         isContentLoading = currentState.isContentLoading,
         isLoadingMore = currentState.isLoadingMore,
         isAllContentPending = currentState.isAllContentPending,
+        likedSongRecommendations = currentState.likedSongRecommendations,
     )
 
 internal fun HomeViewModel.HomeUiState.withoutBlockedContent(): HomeViewModel.HomeUiState {
@@ -2277,6 +2356,7 @@ internal fun HomeViewModel.HomeUiState.withoutBlockedContent(): HomeViewModel.Ho
         trending = BlockedContent.filterSongs(trending, snapshot),
         albumCharts = BlockedContent.filterItems(albumCharts, snapshot).filterIsInstance<AlbumItem>(),
         quickPicks = BlockedContent.filterSongs(quickPicks, snapshot),
+        likedSongRecommendations = BlockedContent.filterSongs(likedSongRecommendations, snapshot),
         speedDialItems = BlockedContent.filterItems(speedDialItems, snapshot),
         newReleases = BlockedContent.filterItems(newReleases, snapshot).filterIsInstance<AlbumItem>(),
         keepListening = BlockedContent.filterSongs(keepListening, snapshot),
@@ -2528,6 +2608,7 @@ internal fun HomeViewModel.HomeUiState.withoutHiddenHomeItems(filter: HomeConten
         trending = filter.filterItems(trending),
         albumCharts = filter.filterItems(albumCharts),
         quickPicks = filter.filterItems(quickPicks),
+        likedSongRecommendations = filter.filterItems(likedSongRecommendations),
         speedDialItems = speedDialItems.filter { it.id in speedDialPinnedIds || !filter.hides(it) },
         newReleases = filter.filterItems(newReleases),
         keepListening = filter.filterItems(keepListening),

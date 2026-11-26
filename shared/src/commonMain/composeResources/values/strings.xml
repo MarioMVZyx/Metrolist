@@ -44,6 +44,8 @@
     <string name="account">Account</string>
     <!-- Translators: Label for quick picks in the Home and browse screens. -->
     <string name="quick_picks">Quick picks</string>
+    <!-- Translators: Home section with songs recommended from the user's liked songs. -->
+    <string name="liked_song_recommendations">Inspired by your liked songs</string>
     <!-- Translators: Label for forgotten favorites in the Home and browse screens. -->
     <string name="forgotten_favorites">Forgotten favorites</string>
     <!-- Translators: Label for keep listening in the Home and browse screens. -->

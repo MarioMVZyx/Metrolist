@@ -113,7 +113,7 @@ Desktop uses the same navigator with a separate page host. Neither desktop nor i
 
 Android requires a second completed Back within two seconds to exit from the start destination. In-app navigation and overlay dismissal take one Back. Leaving the start destination, expanding the player or pausing the activity clears a pending exit confirmation.
 
-Appearance settings offer Home, Search, Library, Tracks, Favorites, Artists, Albums and Playlists as launch destinations on Android and desktop. Favorites opens the liked-song collection above Library in the navigation stack. Launching a library filter starts with that filter; restoration within a running session keeps the current destination.
+Appearance settings offer Home, Search, Library, Tracks, Favorites, Artists, Albums and Playlists as launch destinations on Android and desktop. Android always uses the dark theme; the theme-mode selector remains available on desktop and iOS. Favorites opens the liked-song collection above Library in the navigation stack. Launching a library filter starts with that filter; restoration within a running session keeps the current destination.
 
 Slim bottom navigation hides every tab label, including the selected tab, and uses a 56 dp content height above system insets. Screen readers keep each tab's name and selected state. Wide navigation rails keep their labels.
 

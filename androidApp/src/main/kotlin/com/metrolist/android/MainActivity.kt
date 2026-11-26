@@ -136,7 +136,7 @@ class MainActivity : ComponentActivity() {
         val app = application as App
         val recovery = app.recovery
         val startedAt = SystemClock.elapsedRealtime()
-        startupPresentation = StartupPresentation(startedAt)
+        startupPresentation = StartupPresentation()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Trace.beginAsyncSection("Metrolist.startup.firstFrame", hashCode())
             startupTraceOpen = true
@@ -145,7 +145,12 @@ class MainActivity : ComponentActivity() {
         try {
             installSplashScreen().setKeepOnScreenCondition {
                 val now = SystemClock.elapsedRealtime()
-                val keep = startupPresentation.keepSplash(now, app.startup.isReady, recovery.isRecovering, app.restoringBackup)
+                val keep =
+                    startupPresentation.keepSplash(
+                        startupReady = app.startup.isReady,
+                        recovering = recovery.isRecovering,
+                        restoringBackup = app.restoringBackup,
+                    )
                 if (!keep && !splashReleased) {
                     splashReleased = true
                     endStartupTrace()

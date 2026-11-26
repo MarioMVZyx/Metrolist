@@ -45,6 +45,7 @@ import com.metrolist.shared.generated.resources.library_sort_updated
 import com.metrolist.shared.generated.resources.library_top_songs
 import com.metrolist.shared.generated.resources.library_uploaded_songs
 import com.metrolist.shared.generated.resources.liked
+import com.metrolist.shared.generated.resources.liked_song_recommendations
 import com.metrolist.shared.generated.resources.list_view
 import com.metrolist.shared.generated.resources.loading
 import com.metrolist.shared.generated.resources.manual
@@ -148,6 +149,7 @@ fun homeContentText() =
         playAll = stringResource(Res.string.play),
         keepListening = stringResource(Res.string.keep_listening),
         quickPicks = stringResource(Res.string.quick_picks),
+        likedSongRecommendations = stringResource(Res.string.liked_song_recommendations),
         forgottenFavorites = stringResource(Res.string.forgotten_favorites),
         loading = stringResource(Res.string.loading),
         tryAgain = stringResource(Res.string.retry),

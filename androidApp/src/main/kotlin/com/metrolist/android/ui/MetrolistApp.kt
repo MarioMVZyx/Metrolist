@@ -424,7 +424,7 @@ fun MetrolistApp(
     val songArtworkColorsEnabled = materialYouEnabled && Settings.shared.dynamicTheme
 
     Settings.shared.systemInDarkTheme = isSystemInDarkTheme()
-    val darkTheme = Settings.shared.getCurrentThemeIsDark()
+    val darkTheme = true
     val pureBlack = Settings.shared.isPureBlackTheme(darkTheme)
 
     val coroutineScope = rememberCoroutineScope()

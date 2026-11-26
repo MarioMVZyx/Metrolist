@@ -14,6 +14,8 @@ import com.metrolist.shared.model.isPodcast
 import com.metrolist.shared.settings.Settings
 import com.metrolist.shared.viewmodels.HomeViewModel.HomeUiState
 
+internal const val LIKED_SONG_RECOMMENDATIONS_SECTION_KEY = "liked_song_recommendations"
+
 object HomeShelfBuilder {
     private const val MIN_KEEP_LISTENING_ITEMS = 5
 
@@ -76,6 +78,11 @@ object HomeShelfBuilder {
                             listOf(
                                 Triple("keep_listening", text.keepListening, state.keepListening),
                                 Triple("quick_picks", text.quickPicks, state.quickPicks),
+                                Triple(
+                                    LIKED_SONG_RECOMMENDATIONS_SECTION_KEY,
+                                    text.likedSongRecommendations,
+                                    state.likedSongRecommendations,
+                                ),
                                 Triple("forgotten_favorites", text.forgottenFavorites, state.forgottenFavorites),
                                 Triple("new_releases", text.newReleases, state.newReleases),
                                 Triple("trending", text.charts, state.trending),
@@ -158,6 +165,26 @@ object HomeShelfBuilder {
                             style = HomeShelfStyle.SONG_GRID,
                             headerAction = HomeShelfHeaderAction.PLAY_ALL,
                             rows = 4,
+                        ),
+                    )
+                }
+            }
+
+            if (isVisible(LIKED_SONG_RECOMMENDATIONS_SECTION_KEY, text.likedSongRecommendations)) {
+                val uniqueRecommendations =
+                    state.likedSongRecommendations
+                        .distinctBy(::canonicalHomeItemId)
+                        .filter { seenItemKeys.add(canonicalHomeItemId(it)) }
+                if (uniqueRecommendations.isNotEmpty() &&
+                    seenShelfTitles.add(text.likedSongRecommendations.trim().lowercase())
+                ) {
+                    add(
+                        HomeShelf(
+                            key = LIKED_SONG_RECOMMENDATIONS_SECTION_KEY,
+                            title = text.likedSongRecommendations,
+                            items = uniqueRecommendations,
+                            style = HomeShelfStyle.CAROUSEL,
+                            headerAction = HomeShelfHeaderAction.PLAY_ALL,
                         ),
                     )
                 }

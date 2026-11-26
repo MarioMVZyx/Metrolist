@@ -88,14 +88,16 @@ internal fun SettingsUiRegistryBuilder.registerAppearanceSettings(host: SharedSe
         subtitle = stringResource(Res.string.settings_appearance_overview),
     ) {
         group("theme", stringResource(Res.string.appearance_theme)) {
-            choice(
-                id = "themeMode",
-                title = stringResource(Res.string.theme_mode),
-                valueLabel = themeChoices.first { it.id == selectedThemeMode.name }.label,
-                choices = themeChoices,
-                selectedChoiceId = selectedThemeMode.name,
-            ) { id ->
-                settings.themeMode = ThemeMode.valueOf(id)
+            if (host.platform != SettingsPlatform.ANDROID) {
+                choice(
+                    id = "themeMode",
+                    title = stringResource(Res.string.theme_mode),
+                    valueLabel = themeChoices.first { it.id == selectedThemeMode.name }.label,
+                    choices = themeChoices,
+                    selectedChoiceId = selectedThemeMode.name,
+                ) { id ->
+                    settings.themeMode = ThemeMode.valueOf(id)
+                }
             }
             val appIconChoices = host.hostChoices[SettingsHostChoice.APP_ICON].orEmpty()
             if (appIconChoices.isNotEmpty()) {
